@@ -20,8 +20,8 @@ jobs:
       - name: Build and export
         uses: docker/build-push-action@v5
         with:
-          context: books-service  # Use the correct subdirectory containing the Dockerfile
-          file: books-service/Dockerfile  # Dockerfile located inside the books-service directory
+          context: books-service  # Correct context for Dockerfile
+          file: books-service/Dockerfile  # Dockerfile located inside books-service directory
           tags: books-service:latest
           outputs: type=docker, dest=/tmp/books_image.tar
 
@@ -72,7 +72,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Building with Docker Compose
-        run: docker compose -f books-service/docker-compose.yml up -d
+        run: docker compose -f books-service/docker-compose.yml up -d  # Ensure path is correct
         continue-on-error: true
 
       - name: Check build status
@@ -144,7 +144,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Building with Docker Compose
-        run: docker compose -f books-service/docker-compose.yml up --build -d
+        run: docker compose -f books-service/docker-compose.yml up --build -d  # Ensure path is correct
 
       - name: Set up Python
         uses: actions/setup-python@v5
