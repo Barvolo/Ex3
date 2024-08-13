@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  books-service:
+    build: .
+    restart: always
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017/books
+      FLASK_DEBUG: "false"
+    
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    restart: always
