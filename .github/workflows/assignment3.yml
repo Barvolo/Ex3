@@ -124,7 +124,7 @@ jobs:
         run: docker load --input /tmp/books-service.tar
 
       - name: Set up Docker Compose
-        run: docker compose -f books-service/docker-compose.yml up --build -d
+        run: docker compose -f docker-compose.yml up -d
 
       - name: Set up Python
         uses: actions/setup-python@v5
