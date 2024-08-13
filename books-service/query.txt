@@ -1,0 +1,3 @@
+?genre=Fiction
+?title=The Adventures of Tom Sawyer
+?ISBN=9780553294385
