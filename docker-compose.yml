@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   books-service:
-    build: .
+    build: ./books-service
     restart: always
     ports:
       - "5001:5001"
