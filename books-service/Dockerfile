@@ -7,7 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y gcc libpq-dev build-essential
 
 # Copy the current directory contents into the container at /app
-COPY books-service /app
+COPY . /app
 
 # Install any needed packages specified in requirements.txt with verbose output
 RUN pip install --no-cache-dir -r requirements.txt -v
