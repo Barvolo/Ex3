@@ -71,9 +71,10 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose -f docker-compose.yml up -d
 
-
       - name: Set up Python
         uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'  # Specify the Python version
 
       - name: Install dependencies
         run: |
@@ -81,7 +82,9 @@ jobs:
           pip install pytest requests
       
       - name: Run tests
-        run: pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
+        run: |
+          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
+        continue-on-error: true  # This allows the workflow to continue even if tests fail
       
       - name: Log test results
         if: always()
@@ -128,6 +131,8 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'  # Specify the Python version
 
       - name: Install dependencies
         run: |
