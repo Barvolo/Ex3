@@ -56,7 +56,7 @@ def create_book():
 @api_blueprint.route('/books', methods=['GET'])
 def get_books():
     SUPPORTED_LANGUAGES = ['heb', 'eng', 'spa', 'chi']
-    query_params = request.query_string.decode("utf-8")
+    query_params = request.args.to_dict()
     all_books = []
     result_books = []  # List to store final filtered books
 
@@ -68,21 +68,19 @@ def get_books():
         current_app.logger.error(f"Failed to fetch books from MongoDB: {str(e)}")
         return jsonify({"error": "Failed to fetch books"}), 500
     
-    try:
-        if query_params == '':
-            return jsonify(all_books), 200
-        for book_data in all_books:
-            result_books.append(book_data)
-            for query in query_params.split('&'):
-                key, value = query.split('=')
-                if key.lower() == 'genre' and value not in ['Fiction', 'Children', 'Biography', 'Science', 'Science Fiction', 'Fantasy','Other']:
-                    return jsonify({"error": "Invalid genre"}), 422
-                elif key not in book_data or unquote(value) not in book_data[key] or value == '':
-                    result_books.remove(book_data)
-                    break
-    except:
-        return [], 200
-        
+    if not query_params:
+        return jsonify(all_books), 200
+    
+    result_books = all_books
+    
+    for key, value in query_params.items():
+        if key.lower() == 'genre':
+            if value not in ['Fiction', 'Children', 'Biography', 'Science', 'Science Fiction', 'Fantasy', 'Other']:
+                return jsonify({"error": "Invalid genre"}), 422
+            result_books = [book for book in result_books if book.get('genre') == value]
+        else:
+            result_books = [book for book in result_books if book.get(key) and value.lower() in book[key].lower()]
+    
     return jsonify(result_books), 200
   
 @api_blueprint.route('/books/<string:book_id>', methods=['GET'])
