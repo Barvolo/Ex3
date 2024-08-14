@@ -139,20 +139,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Debug - List directory contents
+      - name: Debug - List directory contents and print query.txt content
         run: |
           echo "Current directory contents:"
           ls -la
           echo "Checking parent directory contents:"
           ls -la ..
-          echo "Looking for query.txt in the current directory:"
-          [ -f "query.txt" ] && echo "query.txt found." || echo "query.txt not found."
-
-      - name: Download log file
-        uses: actions/download-artifact@v4
-        with:
-          name: log-file
-          path: .
+          echo "Contents of query.txt:"
+          cat query.txt || echo "query.txt not found"
 
       - name: Start Docker Compose and Run Post Requests
         run: |
@@ -169,7 +163,9 @@ jobs:
         run: |
           touch response.txt
           if [ -f "query.txt" ]; then
+            echo "Query file found, processing..."
             while IFS= read -r query || [ -n "$query" ]; do
+              echo "Processing query: $query"
               echo "query: ${query}" >> response.txt
               RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/books${query}")
               if [[ "$RESPONSE" =~ ^2 ]]; then
