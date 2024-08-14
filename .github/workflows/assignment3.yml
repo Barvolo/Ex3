@@ -16,7 +16,7 @@ jobs:
         run: |
           start_time=$(date -Iminutes)
           echo "$start_time" > log.txt
-          echo "Bar Volovski" >> log.txt
+          echo "Bar Volovski, Omer Bar-Yehuda" >> log.txt
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -162,45 +162,48 @@ jobs:
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
-      - name: Debug - List directory contents
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Contents of current directory:"
-          ls -la
-          echo "Contents of parent directory:"
-          ls -la ..
-
       - name: Execute queries and generate response.txt
         run: |
           echo "Initializing response.txt"
           echo "" > response.txt
-          if [ ! -f "query.txt" ]; then
-            echo "query.txt not found in current directory. Searching in parent directory..."
-            if [ -f "../query.txt" ]; then
-              echo "query.txt found in parent directory. Using it."
-              QUERY_FILE="../query.txt"
-            else
-              echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
-              echo "?genre=Fiction" > query.txt
+          
+          # Adjust the path to find the query.txt
+          if [ ! -f "books-service/query.txt" ]; then
+            echo "query.txt not found in books-service directory. Searching in project root..."
+            if [ -f "query.txt" ]; then
               QUERY_FILE="query.txt"
+            else
+              echo "query.txt not found in project root either. Creating a dummy query.txt for testing."
+              echo "?genre=Fiction" > books-service/query.txt
+              QUERY_FILE="books-service/query.txt"
             fi
           else
-            QUERY_FILE="query.txt"
+            QUERY_FILE="books-service/query.txt"
           fi
+          
           echo "Using query file: $QUERY_FILE"
           while IFS= read -r query || [ -n "$query" ]; do
-            echo "Processing query: $query" >> response.txt
+            echo "Processing query: $query"
             echo "query: $query" >> response.txt
             response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
             if [ "$response" -eq 200 ]; then
               result=$(curl -s "http://127.0.0.1:5001/books$query")
-              echo -e "response: \n$result\n" >> response.txt
+              echo "response: $(python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+if isinstance(data, list) and len(data) > 0:
+    print(json.dumps(data, indent=2))
+elif data == []:
+    print('\"There are no books matching the selected filters.\"')
+else:
+    print(json.dumps(data))
+              "<<< "$result")" >> response.txt
             else
-              echo -e "response: error $response\n" >> response.txt
+              echo "response: error $response" >> response.txt
             fi
+            echo "" >> response.txt
           done < "$QUERY_FILE"
-          echo "Final contents of response.txt:"
+          echo "Contents of response.txt:"
           cat response.txt
 
       - name: Upload response.txt file
