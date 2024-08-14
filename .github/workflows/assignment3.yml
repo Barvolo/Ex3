@@ -16,7 +16,7 @@ jobs:
         run: |
           start_time=$(date -Iminutes)
           echo "$start_time" > log.txt
-          echo "Bar Volovski, Omer Bar-Yehuda" >> log.txt
+          echo "Bar Volovski" >> log.txt
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -162,28 +162,40 @@ jobs:
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
-      - name: Execute requests from query.txt
+      - name: Execute queries and generate response.txt
         run: |
-          touch response.txt
-          while read querystring; do
-            response=$(curl -s -w "\n%{http_code}" "http://localhost:5001/books$querystring")
-            body=$(echo "$response" | head -n -1)
-            status_code=$(echo "$response" | tail -n 1)
-            if [ "$status_code" -eq 200 ]; then
-              echo "query: $querystring" >> response.txt
-              echo "response: [" >> response.txt
-              # Attempt to format JSON array manually
-              echo "$body" | sed 's/},{/},\n{/g' | sed 's/^/[ /' | sed 's/$/ ]/' >> response.txt
-              echo "]" >> response.txt
+          echo "Initializing response.txt"
+          echo "" > response.txt
+          if [ ! -f "query.txt" ]; then
+            echo "query.txt not found in current directory. Searching in parent directory..."
+            if [ -f "../query.txt" ]; then
+              echo "query.txt found in parent directory. Using it."
+              QUERY_FILE="../query.txt"
             else
-              echo "query: $querystring" >> response.txt
-              echo "response: error $status_code" >> response.txt
+              echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
+              echo "?genre=Fiction" > query.txt
+              QUERY_FILE="query.txt"
             fi
-          done < query.txt
-      - name: Upload response file
-        if: always()
+          else
+            QUERY_FILE="query.txt"
+          fi
+          echo "Using query file: $QUERY_FILE"
+          while IFS= read -r query || [ -n "$query" ]; do
+            echo "Processing query: $query"
+            echo "query: $query" >> response.txt
+            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
+            if [ "$response" -eq 200 ]; then
+              result=$(curl -s "http://127.0.0.1:5001/books$query")
+              echo "response: $result" >> response.txt
+            else
+              echo "response: error $response" >> response.txt
+            fi
+          done < "$QUERY_FILE"
+          echo "Contents of response.txt:"
+          cat response.txt
+
+      - name: Upload response.txt file
         uses: actions/upload-artifact@v4
         with:
-          name: response
+          name: queries-response
           path: response.txt
-  
