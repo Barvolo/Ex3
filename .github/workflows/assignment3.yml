@@ -132,7 +132,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'  # Specify the Python version
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
@@ -143,28 +143,28 @@ jobs:
         run: docker ps
 
       - name: Posting books 1, 2, 3, 6, 7, 8
-        run:  |
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
-          curl --location --request POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
-
-      - name: Reading and executing query.txt queries
         run: |
-          if [ ! -e "query.txt" ]; then
-            echo "File not found!" >> response.txt
-            exit 0
-          fi
-          while IFS= read -r line
-          do
-            echo "query: $line" >> response.txt
-            url="http://127.0.0.1:5001/books$line"
-            res=$(curl --location --request GET "$url")
-            echo "response: $res" >> response.txt
-          done < "query.txt"
-      
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
+
+      - name: Execute queries and generate response.txt
+        run: |
+          echo "" > response.txt
+          while IFS= read -r query || [ -n "$query" ]; do
+            echo "query: $query" >> response.txt
+            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
+            if [ "$response" -eq 200 ]; then
+              result=$(curl -s "http://127.0.0.1:5001/books$query")
+              echo "response: $result" >> response.txt
+            else
+              echo "response: error $response" >> response.txt
+            fi
+          done < query.txt
+
       - name: Upload response.txt file
         uses: actions/upload-artifact@v4
         with:
