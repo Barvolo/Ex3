@@ -54,69 +54,55 @@ jobs:
           name: log
           path: log.txt
 
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    test:
+      needs: build
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-      - name: Download log file
-        uses: actions/download-artifact@v4
-        with:
-          name: log
-          path: .
+        - name: Downloading books-service artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: books-service
+            path: /tmp
 
-      - name: Downloading books-service artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: books-service
-          path: /tmp
+        - name: Load Docker image
+          run: docker load --input /tmp/books-service.tar
 
-      - name: Load Docker image
-        run: docker load --input /tmp/books-service.tar
+        - name: Set up Docker Compose
+          run: docker compose -f docker-compose.yml up -d
 
-      - name: Set up Docker Compose
-        run: |
-          if docker compose -f docker-compose.yml up -d; then
-            echo "Container up and running" >> log.txt
-          else
-            echo "Container failed to run" >> log.txt
-            exit 1
-          fi
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.9'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install pytest requests
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest requests
+        - name: Run tests
+          run: |
+            pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
+            if grep -q "FAILED" assn3_test_results.txt; then
+              echo "tests failed" >> log.txt
+              exit 1
+            else
+              echo "tests succeeded" >> log.txt
 
-      - name: Run tests
-        run: |
-          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
-          if grep -q "FAILED" assn3_test_results.txt; then
-            echo "tests failed" >> log.txt
-          else
-            echo "tests succeeded" >> log.txt
-          fi
+        - name: Shutdown Docker Compose
+          run: docker compose down
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: assn3_test_results.txt
+        - name: Upload test results and log file
+          uses: actions/upload-artifact@v4
+          with:
+            name: test-and-log
+            path: |
+              assn3_test_results.txt
+              log.txt
 
-      - name: Upload updated log file
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: log
-          path: log.txt
-          overwrite: true
 
   query:
     needs: test
