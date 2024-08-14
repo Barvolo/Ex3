@@ -144,7 +144,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: log-file
-          path: .
+          path: log-file
 
       - name: Start Docker Compose and Run Post Requests
         run: |
@@ -181,6 +181,14 @@ jobs:
         with:
           name: response-file
           path: response.txt
+
+      - name: Upload log file
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-file
+          path: log-file/log.txt
+          overwrite: true
 
       - name: Stop Docker Compose
         if: always()
