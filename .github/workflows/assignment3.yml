@@ -172,39 +172,39 @@ jobs:
           ls -la ..
 
       - name: Execute queries and generate response.txt
-        run: |
-          echo "Initializing response.txt"
-          echo "" > response.txt
-          if [ ! -f "query.txt" ]; then
-            echo "query.txt not found in current directory. Searching in parent directory..."
-            if [ -f "../query.txt" ]; then
-              echo "query.txt found in parent directory. Using it."
-              QUERY_FILE="../query.txt"
-            else
-              echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
-              echo "?genre=Fiction" > query.txt
-              QUERY_FILE="query.txt"
-            fi
+      run: |
+        echo "Initializing response.txt"
+        echo "" > response.txt
+        if [ ! -f "query.txt" ]; then
+          echo "query.txt not found in current directory. Searching in parent directory..."
+          if [ -f "../query.txt" ]; then
+            echo "query.txt found in parent directory. Using it."
+            QUERY_FILE="../query.txt"
           else
+            echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
+            echo "?genre=Fiction" > query.txt
             QUERY_FILE="query.txt"
           fi
-          echo "Using query file: $QUERY_FILE"
-          while IFS= read -r query || [ -n "$query" ]; do
-            echo "Processing query: $query"
-            echo "query: $query" >> response.txt
-            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
-            if [ "$response" -eq 200 ]; then
-              result=$(curl -s "http://127.0.0.1:5001/books$query")
-              echo "response: $result" >> response.txt
-            else
-              echo "response: error $response" >> response.txt
-            fi
-          done < "$QUERY_FILE"
-          echo "Contents of response.txt:"
-          cat response.txt
+        else
+          QUERY_FILE="query.txt"
+        fi
+        echo "Using query file: $QUERY_FILE"
+        while IFS= read -r query || [ -n "$query" ]; do
+          echo "Processing query: $query" >> response.txt
+          echo "query: $query" >> response.txt
+          response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
+          if [ "$response" -eq 200 ]; then
+            result=$(curl -s "http://127.0.0.1:5001/books$query")
+            echo -e "response: \n$result\n" >> response.txt
+          else
+            echo -e "response: error $response\n" >> response.txt
+          fi
+        done < "$QUERY_FILE"
+        echo "Final contents of response.txt:"
+        cat response.txt
 
-      - name: Upload response.txt file
-        uses: actions/upload-artifact@v4
-        with:
-          name: queries-response
-          path: response.txt
+    - name: Upload response.txt file
+      uses: actions/upload-artifact@v4
+      with:
+        name: queries-response
+        path: response.txt
