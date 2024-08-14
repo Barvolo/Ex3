@@ -138,13 +138,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Download log file
         uses: actions/download-artifact@v4
         with:
           name: log-file
-          path: log-file
+          path: .
 
       - name: Start Docker Compose and Run Post Requests
         run: |
@@ -159,36 +159,29 @@ jobs:
 
       - name: Run Queries
         run: |
-          touch response.txt
+          echo "" > response.txt
           if [ -f query.txt ]; then
             while IFS= read -r query; do
-              echo "query: ${query}" >> response.txt
-              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/books${query}")
-              if [[ "$RESPONSE" =~ ^2 ]]; then
-                json=$(curl -s "http://localhost:5001/books${query}" -H "Content-Type: application/json")
+              echo "Processing query: $query"
+              echo "query: $query" >> response.txt
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/books$query")
+              if [[ "$RESPONSE" == "200" ]]; then
+                json=$(curl -s "http://localhost:5001/books$query" -H "Content-Type: application/json")
                 echo "response: ${json}" >> response.txt
               else
                 echo "response: error ${RESPONSE}" >> response.txt
               fi
             done < query.txt
           else
-            echo "query.txt not found!" >> response.txt
+            echo "No query.txt found. Skipping query execution."
           fi
-
+          
       - name: Upload response file
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: response-file
           path: response.txt
-
-      - name: Upload log file
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: log-file
-          path: log-file/log.txt
-          overwrite: true
 
       - name: Stop Docker Compose
         if: always()
