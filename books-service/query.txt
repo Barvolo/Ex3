@@ -1,7 +1,0 @@
-?publishedDate=2016-06-13
-?title=Adventures%20of%20Huckleberry%20Finn
-?authors=Mark%20Twain
-?ISBN=9780520343641
-?genre=Fiction
-?publisher=Univ%20of%20California%20Press
-?publishedDate=2021-05-11
