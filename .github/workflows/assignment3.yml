@@ -134,7 +134,6 @@ jobs:
 
   query:
     needs: test
-    if: success()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -146,65 +145,42 @@ jobs:
           name: log-file
           path: .
 
-      - name: Downloading Books Service image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: books-service
-          path: /tmp
-
-      - name: Load Docker image
-        run: docker load --input /tmp/books-service.tar
-
-      - name: Set up Docker Compose
-        run: docker compose -f docker-compose.yml up -d
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
+      - name: Start Docker Compose and Run Post Requests
         run: |
-          python -m pip install --upgrade pip
-          pip install -r books-service/requirements.txt
+          docker compose up -d
+          sleep 10
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
-      - name: Checking that the containers are up
-        run: docker ps
-
-      - name: Posting books 
+      - name: Run Queries
         run: |
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
-          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
-
-      - name: Execute queries and generate response.txt
-        run: |
-          echo "" > response.txt
+          touch response.txt
           if [ -f "query.txt" ]; then
             while IFS= read -r query || [ -n "$query" ]; do
-              echo "Processing query: $query"
-              echo "query: $query" >> response.txt
-              response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
-              if [[ "$response" -eq 200 ]]; then
-                result=$(curl -s "http://127.0.0.1:5001/books$query")
-                echo "response: $result" >> response.txt
+              echo "query: ${query}" >> response.txt
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/books${query}")
+              if [[ "$RESPONSE" =~ ^2 ]]; then
+                json=$(curl -s "http://localhost:5001/books${query}" -H "Content-Type: application/json")
+                echo "response: ${json}" >> response.txt
               else
-                echo "response: error $response" >> response.txt
+                echo "response: error ${RESPONSE}" >> response.txt
               fi
-            done < "query.txt"
+            done < query.txt
           else
-            echo "No query.txt found. Skipping query execution." >> response.txt
+            echo "query.txt not found, skipping query execution." >> response.txt
           fi
           echo "Contents of response.txt:"
           cat response.txt
 
-      - name: Upload response.txt file
+      - name: Upload response file
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: queries-response
+          name: response-file
           path: response.txt
 
       - name: Stop Docker Compose
