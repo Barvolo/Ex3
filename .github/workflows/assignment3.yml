@@ -163,26 +163,27 @@ jobs:
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
       - name: Execute requests from query.txt
-      run: |
-        touch response.txt
-        while read querystring; do
-          response=$(curl -s -w "\n%{http_code}" "http://localhost:5001/books$querystring")
-          body=$(echo "$response" | head -n -1)
-          status_code=$(echo "$response" | tail -n 1)
-          if [ "$status_code" -eq 200 ]; then
-            echo "query: $querystring" >> response.txt
-            echo "response: [" >> response.txt
-            # Attempt to format JSON array manually
-            echo "$body" | sed 's/},{/},\n{/g' | sed 's/^/[ /' | sed 's/$/ ]/' >> response.txt
-            echo "]" >> response.txt
-          else
-            echo "query: $querystring" >> response.txt
-            echo "response: error $status_code" >> response.txt
-          fi
-        done < query.txt
-    - name: Upload response file
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: response
-        path: response.txt
+        run: |
+          touch response.txt
+          while read querystring; do
+            response=$(curl -s -w "\n%{http_code}" "http://localhost:5001/books$querystring")
+            body=$(echo "$response" | head -n -1)
+            status_code=$(echo "$response" | tail -n 1)
+            if [ "$status_code" -eq 200 ]; then
+              echo "query: $querystring" >> response.txt
+              echo "response: [" >> response.txt
+              # Attempt to format JSON array manually
+              echo "$body" | sed 's/},{/},\n{/g' | sed 's/^/[ /' | sed 's/$/ ]/' >> response.txt
+              echo "]" >> response.txt
+            else
+              echo "query: $querystring" >> response.txt
+              echo "response: error $status_code" >> response.txt
+            fi
+          done < query.txt
+      - name: Upload response file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: response
+          path: response.txt
+  
