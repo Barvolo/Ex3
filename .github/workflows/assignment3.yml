@@ -37,6 +37,7 @@ jobs:
             echo "image successfully built" >> log.txt
           else
             echo "image not able to be built" >> log.txt
+            exit 1  # Exit the build job if the image build fails
           fi
 
       - name: Upload Docker image as artifact
@@ -81,7 +82,7 @@ jobs:
             echo "Container up and running" >> log.txt
           else
             echo "Container failed to run" >> log.txt
-            exit 1
+            exit 1  # Exit if Docker Compose fails to start the containers
           fi
 
       - name: Set up Python
@@ -96,13 +97,14 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
-        continue-on-error: true
+          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
+        continue-on-error: false  # Ensure the job fails if tests fail
 
       - name: Log test results
         run: |
           if grep -q "FAILED" assn3_test_results.txt; then
             echo "tests failed" >> log.txt
+            exit 1  # Stop further execution if tests fail
           else
             echo "tests succeeded" >> log.txt
           fi
@@ -124,6 +126,7 @@ jobs:
   query:
     needs: test
     runs-on: ubuntu-latest
+    if: success()  # Only run the query job if the test job succeeds
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
