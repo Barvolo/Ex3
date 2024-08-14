@@ -137,7 +137,7 @@ def update_book(book_id):
     
     # Get the update data
     update_data = request.json
-    required_fields = ['title', 'authors', 'ISBN', 'genre', 'publisher', 'publishedDate', 'id']
+    required_fields = ['title', 'authors', 'ISBN', 'genre', 'publisher', 'publishedDate', 'ID']
 
     # Check if all required fields are in the update data
     if not all(field in update_data for field in required_fields):
