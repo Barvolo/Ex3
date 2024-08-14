@@ -188,7 +188,11 @@ jobs:
                 echo "response: error ${RESPONSE}" >> response.txt
               fi
             done < query.txt
+          else
+            echo "No query.txt found. Exiting."
+            exit 1
           fi
+
       - name: Upload response file
         uses: actions/upload-artifact@v4
         if: always()
