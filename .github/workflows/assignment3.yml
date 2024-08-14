@@ -16,7 +16,7 @@ jobs:
         run: |
           start_time=$(date -Iminutes)
           echo "$start_time" > log.txt
-          echo "Your Name" >> log.txt
+          echo "Bar Volovski" >> log.txt
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
