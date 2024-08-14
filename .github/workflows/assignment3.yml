@@ -137,7 +137,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
+
+      - name: Debug - List directory contents
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Checking parent directory contents:"
+          ls -la ..
+          echo "Looking for query.txt in the current directory:"
+          [ -f "query.txt" ] && echo "query.txt found." || echo "query.txt not found."
 
       - name: Download log file
         uses: actions/download-artifact@v4
