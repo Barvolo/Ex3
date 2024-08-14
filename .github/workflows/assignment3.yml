@@ -186,20 +186,16 @@ jobs:
             response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
             if [ "$response" -eq 200 ]; then
               result=$(curl -s "http://127.0.0.1:5001/books$query")
-              echo "response: $(python3 -c "
-import json, sys
-data = json.loads(sys.stdin.read())
-if isinstance(data, list) and len(data) > 0:
-    print(json.dumps(data, indent=2))
-elif data == []:
-    print('\"There are no books matching the selected filters.\"')
-else:
-    print(json.dumps(data))
-              "<<< "$result")" >> response.txt
+              echo "response: $result" >> response.txt
             else
               echo "response: error $response" >> response.txt
             fi
-            echo "" >> response.txt
           done < "$QUERY_FILE"
           echo "Contents of response.txt:"
           cat response.txt
+
+      - name: Upload response.txt file
+        uses: actions/upload-artifact@v4
+        with:
+          name: queries-response
+          path: response.txt
