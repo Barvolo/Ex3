@@ -122,86 +122,84 @@ jobs:
           overwrite: true
     
   query:
-  needs: test
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Downloading Books Service image artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: books-service
-        path: /tmp
+      - name: Downloading Books Service image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: books-service
+          path: /tmp
 
-    - name: Load Docker image
-      run: docker load --input /tmp/books-service.tar
+      - name: Load Docker image
+        run: docker load --input /tmp/books-service.tar
 
-    - name: Set up Docker Compose
-      run: docker compose -f docker-compose.yml up -d
+      - name: Set up Docker Compose
+        run: docker compose -f docker-compose.yml up -d
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r books-service/requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r books-service/requirements.txt
 
-    - name: Checking that the containers are up
-      run: docker ps
+      - name: Checking that the containers are up
+        run: docker ps
 
-    - name: Posting books 1, 2, 3, 6, 7, 8
-      run: |
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
-        curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
+      - name: Posting books 1, 2, 3, 6, 7, 8
+        run: |
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
+          curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
-    - name: Execute queries and generate response.txt
-      run: |
-        echo "Initializing response.txt"
-        echo "" > response.txt
-        if [ ! -f "books-service/query.txt" ]; then
-          echo "query.txt not found in current directory. Searching in parent directory..."
-          if [ -f "../query.txt" ]; then
-            echo "query.txt found in parent directory. Using it."
-            QUERY_FILE="../query.txt"
-          else
-            echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
-            echo "?genre=Fiction" > query.txt
-            QUERY_FILE="query.txt"
-          fi
-        else
-          QUERY_FILE="books-service/query.txt"
-        fi
-        echo "Using query file: $QUERY_FILE"
-        while IFS= read -r query || [ -n "$query" ]; do
-          echo "Processing query: $query"
-          echo "query: $query" >> response.txt
-          response=$(curl -s -o -w "%{http_code}" "http://127.0.0.1:5001/books$query")
-          http_code=$(echo "$response" | tail -n 1)
-          json_response=$(echo "$response" | sed "$ d")
-          if [ "$http_code" -eq 200 ]; then
-            if [ -z "$json_response" ]; then
-              echo 'response: "There are no books matching the selected filters."' >> response.txt
+      - name: Execute queries and generate response.txt
+        run: |
+          echo "Initializing response.txt"
+          echo "" > response.txt
+          if [ ! -f "query.txt" ]; then
+            echo "query.txt not found in current directory. Searching in parent directory..."
+            if [ -f "../query.txt" ]; then
+              echo "query.txt found in parent directory. Using it."
+              QUERY_FILE="../query.txt"
             else
-              echo "response: $(echo "$json_response" | jq .)" >> response.txt
+              echo "query.txt not found in parent directory either. Creating a dummy query.txt for testing."
+              echo "?genre=Fiction" > query.txt
+              QUERY_FILE="query.txt"
             fi
           else
-            echo "response: error $http_code" >> response.txt
+            QUERY_FILE="query.txt"
           fi
-          echo "" >> response.txt  # Adds a newline after each query-response pair
-        done < "$QUERY_FILE"
-        echo "Contents of response.txt:"
-        cat response.txt
-
-    - name: Upload response.txt file
-      uses: actions/upload-artifact@v4
-      with:
-        name: queries-response
-        path: response.txt
+          echo "Using query file: $QUERY_FILE"
+          while IFS= read -r query || [ -n "$query" ]; do
+            echo "Processing query: $query"
+            echo "query: $query" >> response.txt
+            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
+            if [ "$response" -eq 200 ]; then
+              result=$(curl -s "http://127.0.0.1:5001/books$query")
+              echo "response: $(python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+if isinstance(data, list) and len(data) > 0:
+    print(json.dumps(data, indent=2))
+elif data == []:
+    print('\"There are no books matching the selected filters.\"')
+else:
+    print(json.dumps(data))
+              "<<< "$result")" >> response.txt
+            else
+              echo "response: error $response" >> response.txt
+            fi
+            echo "" >> response.txt
+          done < "$QUERY_FILE"
+          echo "Contents of response.txt:"
+          cat response.txt
