@@ -3,9 +3,9 @@ import requests
 
 # BASE_URL = "http://127.0.0.1:5001/books"
 
-book1 = { "title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction" }
-book2 = { "title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction" }
-book3 = { "title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography" }
+# book1 = { "title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction" }
+# book2 = { "title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction" }
+# book3 = { "title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography" }
 # book4 = { "title": "No such book", "ISBN": "0000001111111", "genre": "Biography" }
 # book5 = { "title": "The Greatest Joke Book Ever", "ISBN": "9780380798490", "genre": "Jokes" }
 
@@ -80,56 +80,67 @@ book3 = { "title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography"
 #     response = requests.post(BASE_URL, json=book5)
 #     assert response.status_code == 422, f"Expected 422 for invalid genre, but got {response.status_code}"
 
-book_data = [book1, book2, book3]
-
-import requests
-
-API_URL = "http://localhost:5001/books"
 
 
-def test_post_books(book_data):
-    ids = []
-    try:
-        for book in book_data[:3]:
-            response = requests.post(API_URL, json=book)
-            assert response.status_code == 201
-            book_id = response.json().get("ID")
-            assert book_id not in ids
-            ids.append(book_id)
-    finally:
-        for book_id in ids:
-            requests.delete(f"{API_URL}/{book_id}")
+BASE_URL = "http://localhost:5001/books"
+
+book6 = {
+    "title": "The Adventures of Tom Sawyer",
+    "ISBN": "9780195810400",
+    "genre": "Fiction"
+}
+
+book7 = {
+    "title": "I, Robot",
+    "ISBN": "9780553294385",
+    "genre": "Science Fiction"
+}
+
+book8 = {
+    "title": "Second Foundation",
+    "ISBN": "9780553293364",
+    "genre": "Science Fiction"
+}
+
+books_data = []
 
 
-def test_get_book(book_ids):
-    response = requests.get(f"{API_URL}/{book_ids[0]}")
-    assert response.status_code == 200
-    book = response.json()
-    assert book["authors"] == "Mark Twain"
+def test_post_books():
+    books = [book6, book7, book8]
+    for book in books:
+        res = requests.post(BASE_URL, json=book)
+        assert res.status_code == 201
+        res_data = res.json()
+        assert "ID" in res_data
+        books_data.append(res_data)
+        books_data_tuples = [frozenset(book.items()) for book in books_data]
+    assert len(set(books_data_tuples)) == 3
 
 
-def test_get_books():
-    response = requests.get(API_URL)
-    assert response.status_code == 404
-    books = response.json()
-    assert len(books) == 3
+def test_get_query():
+    res = requests.get(f"{BASE_URL}?authors=Isaac Asimov")
+    assert res.status_code == 200
+    assert len(res.json()) == 2
 
 
-def test_post_invalid_book(book_data):
-    response = requests.post(API_URL, json=book_data[3])
-    assert response.status_code == 500
+def test_delete_book():
+    res = requests.delete(f"{BASE_URL}/{books_data[0]['ID']}")
+    assert res.status_code == 200
 
 
-def test_delete_book(book_ids):
-    response = requests.delete(f"{API_URL}/{book_ids[1]}")
-    assert response.status_code == 200
+def test_post_book():
+    book = {
+        "title": "The Art of Loving",
+        "ISBN": "9780062138927",
+        "genre": "Science"
+    }
+    res = requests.post(BASE_URL, json=book)
+    assert res.status_code == 201
 
 
-def test_get_deleted_book(book_ids):
-    response = requests.get(f"{API_URL}/{book_ids[1]}")
-    assert response.status_code == 404
 
-
-def test_post_invalid_genre_book(book_data):
-    response = requests.post(API_URL, json=book_data[4])
-    assert response.status_code == 422
+def test_get_new_book_query():
+    res = requests.get(f"{BASE_URL}?genre=Science")
+    assert res.status_code == 200
+    res_data = res.json()
+    assert res_data[0]["title"] == "The Art of Loving"
