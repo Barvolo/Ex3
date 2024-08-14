@@ -162,52 +162,28 @@ jobs:
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction"}'
           curl -X POST 'http://127.0.0.1:5001/books' -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction"}'
 
-      - name: Execute queries and generate response.txt
+      - name: Execute requests from query.txt
         run: |
-          echo "Initializing response.txt"
-          echo "" > response.txt
-          
-          # Adjust the path to find the query.txt
-          if [ ! -f "books-service/query.txt" ]; then
-            echo "query.txt not found in books-service directory. Searching in project root..."
-            if [ -f "query.txt" ]; then
-              QUERY_FILE="query.txt"
+          touch response.txt
+          while read querystring; do
+            response=$(curl -s -w "\n%{http_code}" "http://localhost:5001/books$querystring")
+            body=$(echo "$response" | head -n -1)
+            status_code=$(echo "$response" | tail -n 1)
+            if [ "$status_code" -eq 200 ]; then
+              echo "query: $querystring" >> response.txt
+              echo "response: [" >> response.txt
+              # Attempt to format JSON array manually
+              echo "$body" | sed 's/},{/},\n{/g' | sed 's/^/[ /' | sed 's/$/ ]/' >> response.txt
+              echo "]" >> response.txt
             else
-              echo "query.txt not found in project root either. Creating a dummy query.txt for testing."
-              echo "?genre=Fiction" > books-service/query.txt
-              QUERY_FILE="books-service/query.txt"
+              echo "query: $querystring" >> response.txt
+              echo "response: error $status_code" >> response.txt
             fi
-          else
-            QUERY_FILE="books-service/query.txt"
-          fi
-          
-          echo "Using query file: $QUERY_FILE"
-          while IFS= read -r query || [ -n "$query" ]; do
-            echo "Processing query: $query"
-            echo "query: $query" >> response.txt
-            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:5001/books$query")
-            if [ "$response" -eq 200 ]; then
-              result=$(curl -s "http://127.0.0.1:5001/books$query")
-              echo "response: $(python3 -c "
-import json, sys
-data = json.loads(sys.stdin.read())
-if isinstance(data, list) and len(data) > 0:
-    print(json.dumps(data, indent=2))
-elif data == []:
-    print('\"There are no books matching the selected filters.\"')
-else:
-    print(json.dumps(data))
-              "<<< "$result")" >> response.txt
-            else
-              echo "response: error $response" >> response.txt
-            fi
-            echo "" >> response.txt
-          done < "$QUERY_FILE"
-          echo "Contents of response.txt:"
-          cat response.txt
-
-      - name: Upload response.txt file
+          done < query.txt
+      - name: Upload response file
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: queries-response
+          name: response
           path: response.txt
+  
