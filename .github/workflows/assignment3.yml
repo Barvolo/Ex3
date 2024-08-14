@@ -96,15 +96,16 @@ jobs:
           pip install pytest requests
       
       - name: Run tests
+        id: run_tests
         run: |
           pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
-        continue-on-error: false  # Ensure the job fails if tests fail
+        continue-on-error: true  # Run the tests and capture the result, but don't stop the job
 
-      - name: Log test results
+      - name: Log test results and decide next steps
         run: |
           if grep -q "FAILED" assn3_test_results.txt; then
             echo "tests failed" >> log.txt
-            exit 1  # Stop further execution if tests fail
+            exit 1  # Fail the job if any test failed
           else
             echo "tests succeeded" >> log.txt
           fi
