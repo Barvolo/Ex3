@@ -3,9 +3,9 @@ import requests
 
 # BASE_URL = "http://127.0.0.1:5001/books"
 
-# book1 = { "title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction" }
-# book2 = { "title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction" }
-# book3 = { "title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography" }
+book1 = { "title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction" }
+book2 = { "title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction" }
+book3 = { "title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography" }
 # book4 = { "title": "No such book", "ISBN": "0000001111111", "genre": "Biography" }
 # book5 = { "title": "The Greatest Joke Book Ever", "ISBN": "9780380798490", "genre": "Jokes" }
 
@@ -80,7 +80,7 @@ import requests
 #     response = requests.post(BASE_URL, json=book5)
 #     assert response.status_code == 422, f"Expected 422 for invalid genre, but got {response.status_code}"
 
-
+book_data = [book1, book2, book3]
 
 import requests
 
