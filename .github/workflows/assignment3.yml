@@ -54,54 +54,54 @@ jobs:
           name: log
           path: log.txt
 
-    test:
-      needs: build
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+test:
+  needs: build
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-        - name: Downloading books-service artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: books-service
-            path: /tmp
+    - name: Downloading books-service artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: books-service
+        path: /tmp
 
-        - name: Load Docker image
-          run: docker load --input /tmp/books-service.tar
+    - name: Load Docker image
+      run: docker load --input /tmp/books-service.tar
 
-        - name: Set up Docker Compose
-          run: docker compose -f docker-compose.yml up -d
+    - name: Set up Docker Compose
+      run: docker compose -f docker-compose.yml up -d
 
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: '3.9'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
 
-        - name: Install dependencies
-          run: |
-            python -m pip install --upgrade pip
-            pip install pytest requests
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest requests
 
-        - name: Run tests
-          run: |
-            pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
-            if grep -q "FAILED" assn3_test_results.txt; then
-              echo "tests failed" >> log.txt
-              exit 1
-            else
-              echo "tests succeeded" >> log.txt
+    - name: Run tests
+      run: |
+        pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
+        if grep -q "FAILED" assn3_test_results.txt; then
+          echo "tests failed" >> log.txt
+          exit 1
+        else
+          echo "tests succeeded" >> log.txt
 
-        - name: Shutdown Docker Compose
-          run: docker compose down
+    - name: Shutdown Docker Compose
+      run: docker compose down
 
-        - name: Upload test results and log file
-          uses: actions/upload-artifact@v4
-          with:
-            name: test-and-log
-            path: |
-              assn3_test_results.txt
-              log.txt
+    - name: Upload test results and log file
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-and-log
+        path: |
+          assn3_test_results.txt
+          log.txt
 
 
   query:
