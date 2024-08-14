@@ -98,13 +98,13 @@ jobs:
       - name: Run tests
         id: run_tests
         run: |
-          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
-        continue-on-error: true  # Run the tests and capture the result, but don't stop the job
+          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
 
       - name: Log test results and update log file
         run: |
           if grep -q "FAILED" assn3_test_results.txt; then
             echo "tests failed" >> log.txt
+            exit 1  # Exit if any test fails
           else
             echo "tests succeeded" >> log.txt
           fi
@@ -127,11 +127,9 @@ jobs:
         run: docker compose down
         if: always()
 
-    # Only run query job if all tests passed
-    if: success()
-    
   query:
     needs: test
+    if: success()  # This ensures that the query job only runs if the test job succeeds
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
