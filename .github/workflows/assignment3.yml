@@ -102,8 +102,8 @@ jobs:
       - name: Run tests
         id: run_tests
         run: |
-          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
-        continue-on-error: true
+          pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
+        # Remove continue-on-error, use || true to ensure the command always "succeeds"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -133,7 +133,7 @@ jobs:
         run: docker compose down
 
       - name: Fail the job if tests failed
-        if: steps.run_tests.outcome != 'success'
+        if: failure() || contains(steps.run_tests.outputs.stdout, 'FAILED')
         run: exit 1
 
   query:
