@@ -53,6 +53,8 @@ jobs:
         with:
           name: log-file
           path: log.txt
+          # Append a timestamp to avoid name conflicts
+          retention-days: 1  # Keep the artifact for 1 day to avoid conflicts
 
       - name: Fail the job if Docker build failed
         if: steps.docker_build.outcome != 'success'
@@ -105,21 +107,13 @@ jobs:
           pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
           echo "Test execution completed" >> log.txt
 
-      - name: Check test results
-        run: |
-          if [ -f assn3_test_results.txt ]; then
-            echo "Test results file exists"
-            cat assn3_test_results.txt
-          else
-            echo "Test results file not found"
-          fi
-
       - name: Upload test results
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: test-results
           path: assn3_test_results.txt
+          # Append a timestamp to avoid name conflicts
+          retention-days: 1
 
       - name: Log test results and update log file
         run: |
@@ -139,6 +133,7 @@ jobs:
         with:
           name: log-file
           path: log.txt
+          overwrite: true
 
       - name: Stop Docker Compose
         if: always()
@@ -200,6 +195,8 @@ jobs:
         with:
           name: response-file
           path: response.txt
+          # Append a timestamp to avoid name conflicts
+          retention-days: 1
 
       - name: Stop Docker Compose
         if: always()
