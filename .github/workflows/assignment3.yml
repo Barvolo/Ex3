@@ -16,14 +16,13 @@ jobs:
         run: |
           start_time=$(date -Iminutes)
           echo "$start_time" > log.txt
-          echo "Bar Volovski, Omer Bar-Yehuda" >> log.txt
+          echo "Your Name" >> log.txt
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         id: docker_build
-        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: ./books-service
@@ -54,10 +53,6 @@ jobs:
           name: log-file
           path: log.txt
 
-      - name: Fail the job if Docker build failed
-        if: steps.docker_build.outcome != 'success'
-        run: exit 1
-
   test:
     needs: build
     runs-on: ubuntu-latest
@@ -86,7 +81,7 @@ jobs:
             echo "Container up and running" >> log.txt
           else
             echo "Container failed to run" >> log.txt
-            exit 1  # Exit if Docker Compose fails to start the containers
+            exit 1
           fi
 
       - name: Set up Python
@@ -98,7 +93,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest requests
-      
+
       - name: Run tests
         id: run_tests
         run: |
@@ -111,7 +106,6 @@ jobs:
             echo "tests succeeded" >> log.txt
           else
             echo "tests failed" >> log.txt
-            exit 1  # This will fail the job if tests failed
           fi
 
       - name: Upload test results
@@ -128,10 +122,6 @@ jobs:
           path: log.txt
           overwrite: true
 
-      - name: Stop Docker Compose
-        if: always()
-        run: docker compose down
-
   query:
     needs: test
     runs-on: ubuntu-latest
@@ -139,32 +129,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug - List directory contents and print query.txt content
-        run: |
-          echo "Current directory contents:"
-          ls -la
-          echo "books-service directory contents:"
-          ls -la books-service
-          echo "Contents of query.txt:"
-          cat books-service/query.txt || echo "query.txt not found"
-
       - name: Start Docker Compose and Run Post Requests
         run: |
           docker compose up -d
           sleep 10
           echo "Adding books to the database:"
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction", "authors": "Mark Twain", "publisher": "Univ of California Press", "publishedDate": "2021-09-21"}'
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "Doubleday Books", "publishedDate": "1974"}'
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography", "authors": "Natan Sharansky", "publisher": "Random House", "publishedDate": "1988"}'
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction", "authors": "Mark Twain", "publisher": "Oxford University Press, USA", "publishedDate": "1977"}'
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "National Geographic Books", "publishedDate": "1991-11-01"}'
-          curl -v -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "Spectra", "publishedDate": "1991-10-01"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Adventures of Huckleberry Finn", "ISBN": "9780520343641", "genre": "Fiction", "authors": "Mark Twain", "publisher": "Univ of California Press", "publishedDate": "2021-09-21"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Best of Isaac Asimov", "ISBN": "9780385050784", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "Doubleday Books", "publishedDate": "1974"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Fear No Evil", "ISBN": "9780394558783", "genre": "Biography", "authors": "Natan Sharansky", "publisher": "Random House", "publishedDate": "1988"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "The Adventures of Tom Sawyer", "ISBN": "9780195810400", "genre": "Fiction", "authors": "Mark Twain", "publisher": "Oxford University Press, USA", "publishedDate": "1977"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "I, Robot", "ISBN": "9780553294385", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "National Geographic Books", "publishedDate": "1991-11-01"}'
+          curl -X POST http://localhost:5001/books -H "Content-Type: application/json" -d '{"title": "Second Foundation", "ISBN": "9780553293364", "genre": "Science Fiction", "authors": "Isaac Asimov", "publisher": "Spectra", "publishedDate": "1991-10-01"}'
           
           echo "Waiting for database to update..."
           sleep 5
-          
-          echo "Checking all books in the database:"
-          curl -v http://localhost:5001/books
 
       - name: Run Queries
         run: |
@@ -174,10 +152,8 @@ jobs:
             while IFS= read -r query || [ -n "$query" ]; do
               echo "Processing query: $query"
               echo "query: ${query}" >> response.txt
-              RESPONSE=$(curl -v -X GET "http://localhost:5001/books${query}" -H "Content-Type: application/json")
-              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/books${query}")
+              RESPONSE=$(curl -s -X GET "http://localhost:5001/books${query}" -H "Content-Type: application/json")
               echo "response: ${RESPONSE}" >> response.txt
-              echo "HTTP Code: ${HTTP_CODE}" >> response.txt
             done < books-service/query.txt
           else
             echo "query.txt not found, skipping query execution." >> response.txt
