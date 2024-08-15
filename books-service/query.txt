@@ -1,5 +1,5 @@
-?authors=Mark%20Twain
+?authors=Mark Twain
 ?ISBN=9780553293364
-?genre=Science%20Fiction
-?genre=Science Fiction&title=I,%20Robot
+?genre=Science Fiction
+?genre=Science Fiction&title=I, Robot
 ?publishedDate=1948
