@@ -143,8 +143,10 @@ jobs:
         run: |
           echo "Current directory contents:"
           ls -la
+          echo "books-service directory contents:"
+          ls -la books-service
           echo "Contents of query.txt:"
-          cat query.txt || echo "query.txt not found"
+          cat books-service/query.txt || echo "query.txt not found"
 
       - name: Start Docker Compose and Run Post Requests
         run: |
@@ -160,7 +162,7 @@ jobs:
       - name: Run Queries
         run: |
           touch response.txt
-          if [ -f "query.txt" ]; then
+          if [ -f "books-service/query.txt" ]; then
             echo "Query file found, processing..."
             while IFS= read -r query || [ -n "$query" ]; do
               echo "Processing query: $query"
@@ -172,7 +174,7 @@ jobs:
               else
                 echo "response: error ${HTTP_CODE}" >> response.txt
               fi
-            done < query.txt
+            done < books-service/query.txt
           else
             echo "query.txt not found, skipping query execution." >> response.txt
           fi
