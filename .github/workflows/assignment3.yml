@@ -53,8 +53,6 @@ jobs:
         with:
           name: log-file
           path: log.txt
-          # Append a timestamp to avoid name conflicts
-          retention-days: 1  # Keep the artifact for 1 day to avoid conflicts
 
       - name: Fail the job if Docker build failed
         if: steps.docker_build.outcome != 'success'
@@ -107,25 +105,21 @@ jobs:
           pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
           echo "Test execution completed" >> log.txt
 
+      - name: Log test results and update log file
+        run: |
+          if grep -q "FAILED" assn3_test_results.txt; then
+            echo "tests failed" >> log.txt
+            exit 1  # This will fail the job if tests failed
+          else
+            echo "tests succeeded" >> log.txt
+          fi
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: test-results
           path: assn3_test_results.txt
-          # Append a timestamp to avoid name conflicts
-          retention-days: 1
-
-      - name: Log test results and update log file
-        run: |
-          if [ -f assn3_test_results.txt ]; then
-            if grep -q "FAILED" assn3_test_results.txt; then
-              echo "tests failed" >> log.txt
-            else
-              echo "tests succeeded" >> log.txt
-            fi
-          else
-            echo "Test results file not found" >> log.txt
-          fi
 
       - name: Upload updated log file
         uses: actions/upload-artifact@v4
@@ -138,10 +132,6 @@ jobs:
       - name: Stop Docker Compose
         if: always()
         run: docker compose down
-
-      - name: Fail the job if tests failed
-        if: failure() || contains(steps.run_tests.outputs.stdout, 'FAILED')
-        run: exit 1
 
   query:
     needs: test
@@ -195,8 +185,6 @@ jobs:
         with:
           name: response-file
           path: response.txt
-          # Append a timestamp to avoid name conflicts
-          retention-days: 1
 
       - name: Stop Docker Compose
         if: always()
