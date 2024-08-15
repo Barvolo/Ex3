@@ -83,9 +83,9 @@ jobs:
       - name: Set up Docker Compose
         run: |
           if docker compose -f docker-compose.yml up -d; then
-            echo "Container up and running" >> log-file/log.txt
+            echo "Container up and running" >> log.txt
           else
-            echo "Container failed to run" >> log-file/log.txt
+            echo "Container failed to run" >> log.txt
             exit 1  # Exit if Docker Compose fails to start the containers
           fi
 
@@ -103,7 +103,16 @@ jobs:
         id: run_tests
         run: |
           pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt || true
-        # Remove continue-on-error, use || true to ensure the command always "succeeds"
+          echo "Test execution completed" >> log.txt
+
+      - name: Check test results
+        run: |
+          if [ -f assn3_test_results.txt ]; then
+            echo "Test results file exists"
+            cat assn3_test_results.txt
+          else
+            echo "Test results file not found"
+          fi
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -114,10 +123,14 @@ jobs:
 
       - name: Log test results and update log file
         run: |
-          if grep -q "FAILED" assn3_test_results.txt; then
-            echo "tests failed" >> log-file/log.txt
+          if [ -f assn3_test_results.txt ]; then
+            if grep -q "FAILED" assn3_test_results.txt; then
+              echo "tests failed" >> log.txt
+            else
+              echo "tests succeeded" >> log.txt
+            fi
           else
-            echo "tests succeeded" >> log-file/log.txt
+            echo "Test results file not found" >> log.txt
           fi
 
       - name: Upload updated log file
@@ -125,8 +138,7 @@ jobs:
         if: always()
         with:
           name: log-file
-          path: log-file/log.txt
-          overwrite: true
+          path: log.txt
 
       - name: Stop Docker Compose
         if: always()
