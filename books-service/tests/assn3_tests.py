@@ -28,7 +28,7 @@ def test_create_books():
 def test_get_books():
     """Test retrieving all books."""
     response = requests.get(BASE_URL)
-    assert response.status_code == 404, "Failed to get books"
+    assert response.status_code == 200, "Failed to get books"
     books = response.json()
     assert len(books) == 3, f"Expected 3 books, but got {len(books)}"
 
