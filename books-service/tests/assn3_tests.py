@@ -16,7 +16,7 @@ def test_create_books():
     """Test creating three books."""
     for book in [book1, book2, book3]:
         response = requests.post(BASE_URL, json=book)
-        assert response.status_code == 404, f"Failed to create book: {book['title']}"
+        assert response.status_code == 201, f"Failed to create book: {book['title']}"
         book_id = response.json().get("ID")
         assert book_id is not None, f"Book ID is missing for book: {book['title']}"
         book_ids.append(book_id)
