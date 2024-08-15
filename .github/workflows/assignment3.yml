@@ -68,7 +68,7 @@ jobs:
       - name: Download log file
         uses: actions/download-artifact@v4
         with:
-          name: log
+          name: log-file
           path: .
 
       - name: Downloading books-service artifact
@@ -83,9 +83,9 @@ jobs:
       - name: Set up Docker Compose
         run: |
           if docker compose -f docker-compose.yml up -d; then
-            echo "Container up and running" >> log.txt
+            echo "Container up and running" >> log-file/log.txt
           else
-            echo "Container failed to run" >> log.txt
+            echo "Container failed to run" >> log-file/log.txt
             exit 1  # Exit if Docker Compose fails to start the containers
           fi
 
@@ -105,33 +105,35 @@ jobs:
           pytest -v books-service/tests/assn3_tests.py > assn3_test_results.txt
         continue-on-error: true
 
-      - name: Log test results and update log file
-        run: |
-          if [ "${{ steps.run_tests.outcome }}" == "success" ]; then
-            echo "tests succeeded" >> log.txt
-          else
-            echo "tests failed" >> log.txt
-            exit 1  # This will fail the job if tests failed
-          fi
-
       - name: Upload test results
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: test-results
           path: assn3_test_results.txt
+
+      - name: Log test results and update log file
+        run: |
+          if grep -q "FAILED" assn3_test_results.txt; then
+            echo "tests failed" >> log-file/log.txt
+          else
+            echo "tests succeeded" >> log-file/log.txt
+          fi
 
       - name: Upload updated log file
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: log
-          path: log.txt
+          name: log-file
+          path: log-file/log.txt
           overwrite: true
 
       - name: Stop Docker Compose
         if: always()
         run: docker compose down
+
+      - name: Fail the job if tests failed
+        if: ${{ failure() }}
+        run: exit 1
 
   query:
     needs: test
